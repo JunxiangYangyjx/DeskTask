@@ -1,3 +1,29 @@
+# DeskTask v0.1.2-beta
+
+Small UI polish release.
+
+中文版本见下方。
+
+## Fixes
+
+- Replaced the top-right `+` text button with a drawn icon.
+- Hid the default Qt menu arrow that overlapped with the `+` button.
+- The action menu button no longer depends on the user's installed font rendering.
+
+---
+
+# DeskTask v0.1.2-beta 中文说明
+
+这是一个小型界面修复版本。
+
+## 修复内容
+
+- 将右上角 `+` 文字按钮改成绘制图标。
+- 隐藏 Qt 默认下拉箭头，避免它和 `+` 按钮重叠。
+- 操作菜单按钮不再依赖用户电脑上的字体渲染效果。
+
+---
+
 # DeskTask v0.1.1-beta
 
 Runtime packaging fix for the first public beta.

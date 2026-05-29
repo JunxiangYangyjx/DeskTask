@@ -508,7 +508,7 @@ def check_data(path: Path) -> int:
 
 def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int:
     configure_qt_runtime_paths()
-    from PySide6.QtCore import QPoint, Qt, QTimer
+    from PySide6.QtCore import QPoint, QSize, Qt, QTimer
     from PySide6.QtGui import QAction, QColor, QFont, QFontDatabase, QIcon, QPainter, QPen, QPixmap
     from PySide6.QtWidgets import (
         QApplication,
@@ -607,6 +607,18 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             painter.setPen(pen)
             painter.drawLine(20, 34, 29, 43)
             painter.drawLine(29, 43, 45, 23)
+            painter.end()
+            return QIcon(pixmap)
+
+        def plus_icon(self) -> QIcon:
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(Qt.transparent)
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            pen = QPen(QColor(self.theme["text"]), 6, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+            painter.setPen(pen)
+            painter.drawLine(32, 18, 32, 46)
+            painter.drawLine(18, 32, 46, 32)
             painter.end()
             return QIcon(pixmap)
 
@@ -729,9 +741,13 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                 left.addWidget(subtitle_label)
             header.addLayout(left, 1)
 
-            more = QPushButton("+")
+            more = QPushButton()
             more.setFixedSize(36, 36)
             more.setObjectName("moreButton")
+            more.setAccessibleName("More actions")
+            more.setFocusPolicy(Qt.NoFocus)
+            more.setIcon(self.plus_icon())
+            more.setIconSize(QSize(18, 18))
             more.setStyleSheet(
                 f"""
                 QPushButton#moreButton {{
@@ -739,12 +755,15 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                     color: {self.theme['text']};
                     border: none;
                     border-radius: 18px;
-                    font-size: 22px;
-                    font-weight: 500;
-                    padding-bottom: 3px;
+                    padding: 0;
                 }}
                 QPushButton#moreButton:hover {{
                     background: {self.theme['button_hover']};
+                }}
+                QPushButton#moreButton::menu-indicator {{
+                    image: none;
+                    width: 0px;
+                    height: 0px;
                 }}
                 """
             )
