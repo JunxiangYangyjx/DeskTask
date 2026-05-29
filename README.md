@@ -22,12 +22,13 @@ DeskTask is a small Windows desktop task panel built with PySide6 / Qt. It stays
 
 ## Screenshots
 
-Screenshots will be added before the first public release.
+Screenshots will be added in a later release.
 
 ## Install From Source
 
 ```powershell
-cd "D:\software\Daily task"
+git clone https://github.com/JunxiangYangyjx/DeskTask.git
+cd DeskTask
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e .
 .\.venv\Scripts\pythonw.exe src\daily_task\app.py
@@ -36,14 +37,12 @@ python -m venv .venv
 ## Run Without Console
 
 ```powershell
-cd "D:\software\Daily task"
 .\.venv\Scripts\pythonw.exe src\daily_task\app.py
 ```
 
 ## Validate Data
 
 ```powershell
-cd "D:\software\Daily task"
 .\.venv\Scripts\python.exe src\daily_task\app.py --check
 ```
 

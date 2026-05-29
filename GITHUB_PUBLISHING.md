@@ -41,7 +41,6 @@ Use `RELEASE_NOTES.md` as the release description.
 ## Suggested Git Commands
 
 ```powershell
-cd "D:\software\Daily task"
 git init
 git add .
 git commit -m "Initial public beta"
