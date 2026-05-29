@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "settings": {
+    "timezone": "Asia/Shanghai",
+    "morning_reminder": "09:00",
+    "evening_reminder": "18:00"
+  },
+  "tasks": [
+    {
+      "id": "example-high-priority-report",
+      "title": "Finish two-page project update",
+      "status": "todo",
+      "priority": "high",
+      "due_date": "2026-06-01",
+      "due_label": "Due next Monday",
+      "note": "Prepare two concise slides: progress, blockers, and next steps.",
+      "depends_on": []
+    },
+    {
+      "id": "example-recurring-lab-cleanup",
+      "title": "Weekly desk cleanup",
+      "status": "todo",
+      "priority": "recurring",
+      "due_date": null,
+      "due_label": "Every Friday",
+      "note": "Clear workspace, file notes, and reset commonly used tools.",
+      "depends_on": [],
+      "recurrence": "Every Friday"
+    },
+    {
+      "id": "example-reminder-meeting",
+      "title": "Join weekly seminar",
+      "status": "todo",
+      "priority": "reminder",
+      "due_date": null,
+      "due_label": "Reminder task",
+      "note": "Open the meeting link five minutes early.",
+      "depends_on": [],
+      "reminder_at": "2026-06-01 09:00"
+    }
+  ]
+}

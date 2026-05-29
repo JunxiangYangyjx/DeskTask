@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.py[cod]
+daily_tasks.json
+app_settings.json
+build/
+dist/
+release/
+*.spec
+*.log

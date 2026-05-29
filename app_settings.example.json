@@ -1,0 +1,20 @@
+{
+  "view": "panel",
+  "x": null,
+  "y": 96,
+  "panel_width": 390,
+  "panel_height": null,
+  "panel_max_height": 680,
+  "table_width": 1120,
+  "table_height": 640,
+  "topmost": true,
+  "locked": false,
+  "theme": "light",
+  "show_done_in_panel": true,
+  "daily_reset_time": "00:00",
+  "last_reset_date": "",
+  "last_completion_clear_00_date": "",
+  "last_completion_clear_09_date": "",
+  "font_family": "",
+  "font_file": ""
+}
