@@ -1,3 +1,53 @@
+# DeskTask v0.1.1-beta
+
+Runtime packaging fix for the first public beta.
+
+中文版本见下方。
+
+## Fixes
+
+- Changed the Windows release zip to contain one complete top-level app folder.
+- Pins PySide6 to `6.7.3` for reproducible Windows packaging.
+- Explicitly checks PySide6 / Qt runtime loading during packaging.
+- Adds the bundled PySide6 and shiboken6 directories to the Windows DLL search path at startup.
+- Added a startup diagnostic message when Qt runtime loading fails.
+- Added a build-time GUI smoke test.
+
+## How to Run
+
+1. Download `DeskTask-0.1.1-beta-win64.zip`.
+2. Extract the zip file to a normal folder.
+3. Double-click `DeskTask.exe`.
+
+Do not run the app directly inside the zip preview.
+Keep the extracted `_internal` folder next to `DeskTask.exe`.
+
+---
+
+# DeskTask v0.1.1-beta 中文说明
+
+这是针对第一个公开 beta 版本的运行时打包修复。
+
+## 修复内容
+
+- 将 Windows 发布 zip 调整为包含一个完整顶层程序文件夹。
+- 将 PySide6 固定为 `6.7.3`，保证 Windows 打包可复现。
+- 打包时显式检查 PySide6 / Qt 运行时是否可加载。
+- 启动时将随包附带的 PySide6 和 shiboken6 目录加入 Windows DLL 搜索路径。
+- 当 Qt 运行时加载失败时，显示更清晰的启动诊断信息。
+- 构建时增加 GUI 导入 smoke test。
+
+## 如何运行
+
+1. 下载 `DeskTask-0.1.1-beta-win64.zip`。
+2. 将 zip 文件完整解压到普通文件夹。
+3. 双击运行 `DeskTask.exe`。
+
+不要直接在压缩包预览窗口中运行程序。
+请保留解压后的 `_internal` 文件夹，它需要和 `DeskTask.exe` 放在同一目录。
+
+---
+
 # DeskTask v0.1.0-beta
 
 Initial public beta. This release is provided as a portable Windows zip package.

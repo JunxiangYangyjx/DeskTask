@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import sys
 import re
 from dataclasses import dataclass
@@ -22,6 +23,73 @@ DEFAULT_DATA_PATH = APP_ROOT / "daily_tasks.json"
 DEFAULT_SETTINGS_PATH = APP_ROOT / "app_settings.json"
 DEFAULT_EXAMPLE_DATA_PATH = APP_ROOT / "daily_tasks.example.json"
 DEFAULT_EXAMPLE_SETTINGS_PATH = APP_ROOT / "app_settings.example.json"
+DLL_DIRECTORY_HANDLES: list[Any] = []
+
+
+def configure_qt_runtime_paths() -> None:
+    if sys.platform != "win32" or not getattr(sys, "frozen", False):
+        return
+    bundle_root = Path(getattr(sys, "_MEIPASS", APP_ROOT))
+    for dll_dir in (bundle_root / "PySide6", bundle_root / "shiboken6", bundle_root):
+        if not dll_dir.exists():
+            continue
+        dll_dir_text = str(dll_dir)
+        if hasattr(os, "add_dll_directory"):
+            DLL_DIRECTORY_HANDLES.append(os.add_dll_directory(dll_dir_text))
+        path_parts = os.environ.get("PATH", "").split(os.pathsep)
+        if dll_dir_text not in path_parts:
+            os.environ["PATH"] = dll_dir_text + os.pathsep + os.environ.get("PATH", "")
+
+
+def show_startup_error(message: str) -> None:
+    try:
+        sys.stderr.write(message + "\n")
+    except Exception:
+        pass
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.user32.MessageBoxW(None, message, "DeskTask startup error", 0x10)
+            return
+        except Exception:
+            pass
+    print(message, file=sys.stderr)
+
+
+def format_qt_import_error(error: BaseException) -> str:
+    return (
+        "DeskTask could not load the Qt runtime.\n\n"
+        "Please try these steps:\n"
+        "1. Extract the full zip file before running DeskTask.exe.\n"
+        "2. Do not move DeskTask.exe away from the extracted folder.\n"
+        "3. If Windows blocked or quarantined files, download and extract the release again.\n"
+        "4. Install Microsoft Visual C++ Redistributable 2015-2022 x64 if the problem remains.\n\n"
+        "DeskTask 无法加载 Qt 运行时。\n\n"
+        "请尝试：\n"
+        "1. 先完整解压 zip 文件，再运行 DeskTask.exe。\n"
+        "2. 不要把 DeskTask.exe 单独移出解压后的文件夹。\n"
+        "3. 如果 Windows 或杀毒软件拦截了文件，请重新下载并解压。\n"
+        "4. 如果仍然失败，请安装 Microsoft Visual C++ Redistributable 2015-2022 x64。\n\n"
+        f"Original error: {error}"
+    )
+
+
+def gui_smoke_test() -> int:
+    configure_qt_runtime_paths()
+    try:
+        from PySide6.QtCore import qVersion
+        from PySide6.QtWidgets import QApplication
+    except ImportError as error:
+        message = format_qt_import_error(error)
+        try:
+            (APP_ROOT / "desktask_smoke_test_error.log").write_text(message, encoding="utf-8")
+            sys.stderr.write(message + "\n")
+        except Exception:
+            pass
+        return 1
+    print(f"Qt runtime OK: {qVersion()}; QApplication={QApplication.__name__}")
+    return 0
 
 GROUP_MUST = "今天必须做"
 GROUP_NEXT = "可以推进"
@@ -439,6 +507,7 @@ def check_data(path: Path) -> int:
 
 
 def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int:
+    configure_qt_runtime_paths()
     from PySide6.QtCore import QPoint, Qt, QTimer
     from PySide6.QtGui import QAction, QColor, QFont, QFontDatabase, QIcon, QPainter, QPen, QPixmap
     from PySide6.QtWidgets import (
@@ -1452,11 +1521,21 @@ def main() -> int:
     parser.add_argument("--data", type=Path, default=DEFAULT_DATA_PATH, help="Path to daily_tasks.json")
     parser.add_argument("--settings", type=Path, default=DEFAULT_SETTINGS_PATH, help="Path to app_settings.json")
     parser.add_argument("--check", action="store_true", help="Validate and print the current task plan without opening GUI")
+    parser.add_argument("--gui-smoke-test", action="store_true", help="Import Qt and exit")
     args = parser.parse_args()
 
     if args.check:
         return check_data(args.data)
-    return run_gui(args.data, args.settings)
+    if args.gui_smoke_test:
+        return gui_smoke_test()
+    try:
+        return run_gui(args.data, args.settings)
+    except ImportError as error:
+        message = str(error)
+        if "PySide6" in message or "QtCore" in message or "Qt" in message:
+            show_startup_error(format_qt_import_error(error))
+            return 1
+        raise
 
 
 if __name__ == "__main__":

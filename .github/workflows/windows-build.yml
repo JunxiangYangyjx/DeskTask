@@ -33,10 +33,10 @@ jobs:
 
       - name: Build zip
         run: |
-          .\scripts\build_windows.ps1 -Version "0.1.0-beta"
+          .\scripts\build_windows.ps1 -Version "0.1.1-beta"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DeskTask-0.1.0-beta-win64
-          path: release\DeskTask-0.1.0-beta-win64.zip
+          name: DeskTask-0.1.1-beta-win64
+          path: release\DeskTask-0.1.1-beta-win64.zip

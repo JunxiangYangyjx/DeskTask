@@ -28,12 +28,13 @@ Screenshots will be added in a later release.
 
 ## Download And Run
 
-1. Download `DeskTask-0.1.0-beta-win64.zip` from the release page.
+1. Download the latest `DeskTask-*-win64.zip` from the release page.
 2. Extract the zip file to a normal folder.
 3. Open the extracted folder.
 4. Double-click `DeskTask.exe`.
 
-Do not run the app directly inside the zip preview. Keep the `_internal` folder next to `DeskTask.exe`.
+Do not run the app directly inside the zip preview.
+Keep the extracted `_internal` folder next to `DeskTask.exe`.
 
 ## Install From Source
 

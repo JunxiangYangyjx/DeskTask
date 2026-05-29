@@ -28,12 +28,13 @@ DeskTask 是一个基于 PySide6 / Qt 构建的 Windows 桌面任务面板。它
 
 ## 下载并运行
 
-1. 从 Release 页面下载 `DeskTask-0.1.0-beta-win64.zip`。
+1. 从 Release 页面下载最新的 `DeskTask-*-win64.zip`。
 2. 将 zip 文件完整解压到普通文件夹。
 3. 打开解压后的文件夹。
 4. 双击运行 `DeskTask.exe`。
 
-不要直接在压缩包预览窗口中运行程序。请保留 `_internal` 文件夹，它需要和 `DeskTask.exe` 放在同一目录。
+不要直接在压缩包预览窗口中运行程序。
+请保留解压后的 `_internal` 文件夹，它需要和 `DeskTask.exe` 放在同一目录。
 
 ## 从源码运行
 
