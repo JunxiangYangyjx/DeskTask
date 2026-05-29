@@ -1,5 +1,7 @@
 # DeskTask
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 DeskTask is a small Windows desktop task panel built with PySide6 / Qt. It stays as a compact floating widget, supports quick task editing, and can show local reminder popups.
 
 ## Features
@@ -23,6 +25,15 @@ DeskTask is a small Windows desktop task panel built with PySide6 / Qt. It stays
 ## Screenshots
 
 Screenshots will be added in a later release.
+
+## Download And Run
+
+1. Download `DeskTask-0.1.0-beta-win64.zip` from the release page.
+2. Extract the zip file to a normal folder.
+3. Open the extracted folder.
+4. Double-click `DeskTask.exe`.
+
+Do not run the app directly inside the zip preview. Keep the `_internal` folder next to `DeskTask.exe`.
 
 ## Install From Source
 
