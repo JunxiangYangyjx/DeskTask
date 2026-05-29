@@ -1,3 +1,31 @@
+# DeskTask v0.1.3-beta
+
+Schedule migration and local development launch improvements.
+
+中文版本见下方。
+
+## Highlights
+
+- Packaged releases now store user data under `%LOCALAPPDATA%\DeskTask`, so schedules survive zip-folder or installer upgrades.
+- First launch automatically migrates old `daily_tasks.json` and `app_settings.json` files from previous extracted or installed DeskTask folders when possible.
+- Added `+` -> `导入旧版日程` for manually importing an old `daily_tasks.json`.
+- Added `scripts\create_dev_shortcut.ps1` to create a desktop shortcut for opening the local development version.
+
+---
+
+# DeskTask v0.1.3-beta 中文说明
+
+这个版本加入日程迁移和本地开发版快捷打开能力。
+
+## 主要变化
+
+- 打包发布版现在把用户数据保存在 `%LOCALAPPDATA%\DeskTask`，因此 zip 解压目录变化或安装器升级后，日程仍会保留。
+- 首次启动时，如果能找到旧版解压目录或旧安装目录中的 `daily_tasks.json` / `app_settings.json`，会自动迁移。
+- 右上角 `+` 菜单新增“导入旧版日程”，可以手动选择旧版 `daily_tasks.json`。
+- 新增 `scripts\create_dev_shortcut.ps1`，用于创建打开本地开发版的桌面快捷方式。
+
+---
+
 # DeskTask v0.1.2-beta
 
 Small UI polish release.

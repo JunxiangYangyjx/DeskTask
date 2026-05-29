@@ -58,6 +58,16 @@ python -m venv .venv
 .\.venv\Scripts\pythonw.exe src\daily_task\app.py
 ```
 
+## Local Development Shortcut
+
+Create a desktop shortcut that opens the local development version:
+
+```powershell
+.\scripts\create_dev_shortcut.ps1
+```
+
+The shortcut runs `src\daily_task\app.py` with the project's virtual environment and uses the local project JSON data.
+
 ## Validate Data
 
 ```powershell
@@ -77,6 +87,8 @@ These files are intentionally ignored by Git. The repository includes safe examp
 - `app_settings.example.json`
 
 If `daily_tasks.json` is missing, DeskTask creates it from the example file.
+
+Packaged releases store user data under `%LOCALAPPDATA%\DeskTask`, so schedules survive upgrades. On first launch, DeskTask also tries to migrate older `daily_tasks.json` and `app_settings.json` files from older extracted or installed folders. You can also use `+` -> `Import old schedule` from the app menu.
 
 ## Task Behavior
 

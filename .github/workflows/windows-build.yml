@@ -33,7 +33,7 @@ jobs:
 
       - name: Build zip
         run: |
-          .\scripts\build_windows.ps1 -Version "0.1.2-beta"
+          .\scripts\build_windows.ps1 -Version "0.1.3-beta"
 
       - name: Install Inno Setup
         run: |
@@ -41,12 +41,12 @@ jobs:
 
       - name: Build installer
         run: |
-          .\scripts\build_installer.ps1 -Version "0.1.2-beta" -VersionInfo "0.1.2.0" -SkipAppBuild
+          .\scripts\build_installer.ps1 -Version "0.1.3-beta" -VersionInfo "0.1.3.0" -SkipAppBuild
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: DeskTask-0.1.2-beta-win64
+          name: DeskTask-0.1.3-beta-win64
           path: |
-            release\DeskTask-0.1.2-beta-win64.zip
-            release\DeskTaskSetup-0.1.2-beta.exe
+            release\DeskTask-0.1.3-beta-win64.zip
+            release\DeskTaskSetup-0.1.3-beta.exe

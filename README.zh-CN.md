@@ -58,6 +58,16 @@ python -m venv .venv
 .\.venv\Scripts\pythonw.exe src\daily_task\app.py
 ```
 
+## 本地开发版快捷方式
+
+创建一个桌面快捷方式，用来打开本地开发版：
+
+```powershell
+.\scripts\create_dev_shortcut.ps1
+```
+
+这个快捷方式会使用项目虚拟环境运行 `src\daily_task\app.py`，并读取本地项目里的 JSON 数据。
+
 ## 校验数据
 
 ```powershell
@@ -77,6 +87,8 @@ DeskTask 会把用户数据保存在本地 JSON 文件中：
 - `app_settings.example.json`
 
 如果 `daily_tasks.json` 不存在，DeskTask 会根据示例文件自动创建。
+
+打包发布版会把用户数据保存在 `%LOCALAPPDATA%\DeskTask`，因此升级后日程会保留。首次启动时，DeskTask 也会尝试从旧版解压目录或旧安装目录自动迁移 `daily_tasks.json` 和 `app_settings.json`。你也可以在软件右上角 `+` 菜单中选择“导入旧版日程”。
 
 ## 任务行为
 

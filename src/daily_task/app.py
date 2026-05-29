@@ -18,9 +18,21 @@ def application_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def data_root() -> Path:
+    override = os.environ.get("DESKTASK_DATA_DIR")
+    if override:
+        return Path(override).expanduser().resolve()
+    if getattr(sys, "frozen", False):
+        base = os.environ.get("LOCALAPPDATA")
+        if base:
+            return Path(base) / "DeskTask"
+    return application_root()
+
+
 APP_ROOT = application_root()
-DEFAULT_DATA_PATH = APP_ROOT / "daily_tasks.json"
-DEFAULT_SETTINGS_PATH = APP_ROOT / "app_settings.json"
+DATA_ROOT = data_root()
+DEFAULT_DATA_PATH = DATA_ROOT / "daily_tasks.json"
+DEFAULT_SETTINGS_PATH = DATA_ROOT / "app_settings.json"
 DEFAULT_EXAMPLE_DATA_PATH = APP_ROOT / "daily_tasks.example.json"
 DEFAULT_EXAMPLE_SETTINGS_PATH = APP_ROOT / "app_settings.example.json"
 DLL_DIRECTORY_HANDLES: list[Any] = []
@@ -90,6 +102,66 @@ def gui_smoke_test() -> int:
         return 1
     print(f"Qt runtime OK: {qVersion()}; QApplication={QApplication.__name__}")
     return 0
+
+
+def read_json_file(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        loaded = json.load(f)
+    if not isinstance(loaded, dict):
+        raise ValueError(f"{path} does not contain a JSON object.")
+    return loaded
+
+
+def is_task_data(data: dict[str, Any]) -> bool:
+    return isinstance(data.get("tasks"), list)
+
+
+def legacy_file_candidates(file_name: str, target_path: Path) -> list[Path]:
+    candidates: list[Path] = []
+
+    def add(path: Path) -> None:
+        path = path.expanduser()
+        if path == target_path or path.name != file_name:
+            return
+        if path.exists() and path.is_file() and path not in candidates:
+            candidates.append(path)
+
+    add(APP_ROOT / file_name)
+    add(Path.cwd() / file_name)
+
+    for parent in {APP_ROOT.parent, Path.cwd().parent}:
+        if parent.exists():
+            for child in parent.glob("DeskTask*"):
+                add(child / file_name)
+
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        add(Path(local_app_data) / "Programs" / "DeskTask" / file_name)
+        add(Path(local_app_data) / "DeskTask" / file_name)
+
+    app_data = os.environ.get("APPDATA")
+    if app_data:
+        add(Path(app_data) / "DeskTask" / file_name)
+
+    return sorted(candidates, key=lambda item: item.stat().st_mtime, reverse=True)
+
+
+def migrate_file_if_missing(target_path: Path, file_name: str, validator: Any | None = None) -> Path | None:
+    if target_path.exists():
+        return None
+    for candidate in legacy_file_candidates(file_name, target_path):
+        try:
+            loaded = read_json_file(candidate)
+            if validator and not validator(loaded):
+                continue
+        except Exception:
+            continue
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with target_path.open("w", encoding="utf-8") as f:
+            json.dump(loaded, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        return candidate
+    return None
 
 GROUP_MUST = "今天必须做"
 GROUP_NEXT = "可以推进"
@@ -252,36 +324,37 @@ class Task:
 
 
 def load_data(path: Path = DEFAULT_DATA_PATH) -> dict[str, Any]:
+    migrate_file_if_missing(path, "daily_tasks.json", is_task_data)
     if not path.exists():
         if DEFAULT_EXAMPLE_DATA_PATH.exists():
-            with DEFAULT_EXAMPLE_DATA_PATH.open("r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = read_json_file(DEFAULT_EXAMPLE_DATA_PATH)
         else:
             data = {"version": 1, "settings": {"timezone": "Asia/Shanghai", "morning_reminder": "09:00", "evening_reminder": "18:00"}, "tasks": []}
         save_data(data, path)
         return data
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    return read_json_file(path)
 
 
 def save_data(data: dict[str, Any], path: Path = DEFAULT_DATA_PATH) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
 
 def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> dict[str, Any]:
+    migrate_file_if_missing(path, "app_settings.json")
     settings = copy.deepcopy(DEFAULT_SETTINGS)
     source_path = path if path.exists() else DEFAULT_EXAMPLE_SETTINGS_PATH
     if source_path.exists():
-        with source_path.open("r", encoding="utf-8") as f:
-            loaded = json.load(f)
+        loaded = read_json_file(source_path)
         if isinstance(loaded, dict):
             settings.update(loaded)
     return settings
 
 
 def save_settings(settings: dict[str, Any], path: Path = DEFAULT_SETTINGS_PATH) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         json.dump(settings, f, ensure_ascii=False, indent=2)
         f.write("\n")
@@ -795,6 +868,8 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             refresh_action.triggered.connect(self.refresh_data)
             add_action = QAction("增加任务", self)
             add_action.triggered.connect(self.open_add_task_dialog)
+            import_action = QAction("导入旧版日程", self)
+            import_action.triggered.connect(self.open_import_schedule_dialog)
             font_action = QAction("修改字体", self)
             font_action.triggered.connect(self.open_font_dialog)
             view_action = QAction("打开完整任务表" if self.settings.get("view") != "table" else "回到小面板", self)
@@ -807,7 +882,7 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             hide_action.triggered.connect(self.hide)
             quit_action = QAction("退出", self)
             quit_action.triggered.connect(QApplication.instance().quit)
-            for action in [refresh_action, add_action, font_action, view_action, lock_action, theme_action, hide_action]:
+            for action in [refresh_action, add_action, import_action, font_action, view_action, lock_action, theme_action, hide_action]:
                 menu.addAction(action)
             menu.addSeparator()
             menu.addAction(quit_action)
@@ -825,6 +900,60 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             if clear_stale_completions(self.data):
                 save_data(self.data, self.data_path)
             self.render()
+
+        def open_import_schedule_dialog(self) -> None:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                "选择旧版本 daily_tasks.json",
+                str(APP_ROOT.parent),
+                "DeskTask data (daily_tasks.json);;JSON Files (*.json);;All Files (*)",
+            )
+            if not file_path:
+                return
+            source_path = Path(file_path)
+            try:
+                imported = read_json_file(source_path)
+            except Exception as error:
+                QMessageBox.warning(self, "导入失败", f"无法读取这个 JSON 文件：\n{error}")
+                return
+            if not is_task_data(imported):
+                QMessageBox.warning(self, "导入失败", "这个文件不是有效的 DeskTask 日程文件。")
+                return
+
+            decision = QMessageBox.question(
+                self,
+                "导入旧版日程",
+                "是否用旧版日程替换当前日程？\n\n选择 Yes：替换当前日程。\n选择 No：合并到当前日程，重复 ID 会跳过。\n选择 Cancel：取消导入。",
+                QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                QMessageBox.No,
+            )
+            if decision == QMessageBox.Cancel:
+                return
+
+            imported_tasks = list(imported.get("tasks", []))
+            if decision == QMessageBox.Yes:
+                self.data = imported
+                save_data(self.data, self.data_path)
+                self.render()
+                QMessageBox.information(self, "导入完成", f"已替换为旧版日程，共 {len(imported_tasks)} 项。")
+                return
+
+            self.data = load_data(self.data_path)
+            current_tasks = self.data.setdefault("tasks", [])
+            existing_ids = {item.get("id") for item in current_tasks}
+            added = 0
+            skipped = 0
+            for item in imported_tasks:
+                task_id = item.get("id")
+                if task_id in existing_ids:
+                    skipped += 1
+                    continue
+                current_tasks.append(item)
+                existing_ids.add(task_id)
+                added += 1
+            save_data(self.data, self.data_path)
+            self.render()
+            QMessageBox.information(self, "导入完成", f"已合并 {added} 项；跳过重复 {skipped} 项。")
 
         def find_task_item(self, task_id: str) -> dict[str, Any] | None:
             self.data = load_data(self.data_path)

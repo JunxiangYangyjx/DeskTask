@@ -1,9 +1,9 @@
 #ifndef MyAppVersion
-#define MyAppVersion "0.1.2-beta"
+#define MyAppVersion "0.1.3-beta"
 #endif
 
 #ifndef MyAppVersionInfo
-#define MyAppVersionInfo "0.1.2.0"
+#define MyAppVersionInfo "0.1.3.0"
 #endif
 
 #define MyAppName "DeskTask"
