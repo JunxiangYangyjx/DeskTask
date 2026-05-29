@@ -10,6 +10,12 @@ Small UI polish release.
 - Hid the default Qt menu arrow that overlapped with the `+` button.
 - The action menu button no longer depends on the user's installed font rendering.
 
+## Installer
+
+- Added an Inno Setup based Windows installer: `DeskTaskSetup-0.1.2-beta.exe`.
+- The installer uses current-user installation and does not require administrator permission.
+- The first installer build uses an English setup wizard.
+
 ---
 
 # DeskTask v0.1.2-beta 中文说明
@@ -21,6 +27,12 @@ Small UI polish release.
 - 将右上角 `+` 文字按钮改成绘制图标。
 - 隐藏 Qt 默认下拉箭头，避免它和 `+` 按钮重叠。
 - 操作菜单按钮不再依赖用户电脑上的字体渲染效果。
+
+## 安装器
+
+- 新增基于 Inno Setup 的 Windows 安装器：`DeskTaskSetup-0.1.2-beta.exe`。
+- 安装器采用当前用户安装模式，不需要管理员权限。
+- 当前安装向导暂时使用英文界面。
 
 ---
 

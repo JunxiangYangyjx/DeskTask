@@ -36,6 +36,12 @@ Screenshots will be added in a later release.
 Do not run the app directly inside the zip preview.
 Keep the extracted `_internal` folder next to `DeskTask.exe`.
 
+## Installer
+
+The Windows installer is named `DeskTaskSetup-*-beta.exe`.
+
+It installs DeskTask for the current Windows user and does not require administrator permission. The first installer build uses an English setup wizard.
+
 ## Install From Source
 
 ```powershell
@@ -107,6 +113,22 @@ Build:
 ```
 
 The release zip will be created under `release/`.
+
+## Build The Windows Installer
+
+Install Inno Setup 6 first:
+
+```powershell
+winget install --id JRSoftware.InnoSetup -e
+```
+
+Build:
+
+```powershell
+.\scripts\build_installer.ps1
+```
+
+The installer will be created under `release/`.
 
 ## Roadmap
 

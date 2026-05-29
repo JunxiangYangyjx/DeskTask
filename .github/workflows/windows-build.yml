@@ -35,8 +35,18 @@ jobs:
         run: |
           .\scripts\build_windows.ps1 -Version "0.1.2-beta"
 
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y --no-progress
+
+      - name: Build installer
+        run: |
+          .\scripts\build_installer.ps1 -Version "0.1.2-beta" -VersionInfo "0.1.2.0" -SkipAppBuild
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: DeskTask-0.1.2-beta-win64
-          path: release\DeskTask-0.1.2-beta-win64.zip
+          path: |
+            release\DeskTask-0.1.2-beta-win64.zip
+            release\DeskTaskSetup-0.1.2-beta.exe

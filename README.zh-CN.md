@@ -36,6 +36,12 @@ DeskTask 是一个基于 PySide6 / Qt 构建的 Windows 桌面任务面板。它
 不要直接在压缩包预览窗口中运行程序。
 请保留解压后的 `_internal` 文件夹，它需要和 `DeskTask.exe` 放在同一目录。
 
+## 安装器
+
+Windows 安装器文件名为 `DeskTaskSetup-*-beta.exe`。
+
+它会为当前 Windows 用户安装 DeskTask，不需要管理员权限。当前安装向导暂时使用英文界面。
+
 ## 从源码运行
 
 ```powershell
@@ -107,6 +113,22 @@ DeskTask 会把用户数据保存在本地 JSON 文件中：
 ```
 
 生成的 zip 文件会放在 `release/` 目录下。
+
+## 构建 Windows 安装器
+
+先安装 Inno Setup 6：
+
+```powershell
+winget install --id JRSoftware.InnoSetup -e
+```
+
+执行构建：
+
+```powershell
+.\scripts\build_installer.ps1
+```
+
+生成的安装器会放在 `release/` 目录下。
 
 ## 后续计划
 
