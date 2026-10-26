@@ -11,6 +11,9 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
 
     steps:
       - name: Checkout
@@ -34,7 +37,6 @@ jobs:
 
       - name: Test Outlook import and milestones
         env:
-          PYTHONIOENCODING: utf-8
           QT_QPA_PLATFORM: offscreen
         run: |
           .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_outlook_import.py -v
