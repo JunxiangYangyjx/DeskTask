@@ -1,5 +1,5 @@
 param(
-  [string]$Version = "0.1.3-beta"
+  [string]$Version = "0.2.0-beta"
 )
 
 $ErrorActionPreference = "Stop"
@@ -8,7 +8,7 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $PyInstaller = Join-Path $ProjectRoot ".venv\Scripts\pyinstaller.exe"
 $DistDir = Join-Path $ProjectRoot "dist"
-$BuildDir = Join-Path $ProjectRoot "build"
+$BuildDir = Join-Path $ProjectRoot "build\pyinstaller"
 $ReleaseDir = Join-Path $ProjectRoot "release"
 $AppName = "DeskTask"
 
@@ -27,6 +27,7 @@ New-Item -ItemType Directory -Force -Path $ReleaseDir | Out-Null
 & $PyInstaller `
   --noconfirm `
   --clean `
+  --workpath $BuildDir `
   --windowed `
   --name $AppName `
   --add-data "daily_tasks.example.json;." `

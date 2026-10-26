@@ -11,6 +11,11 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+try:
+    from daily_task.milestones import due_milestone_reminders, milestone_date_label, milestone_summary, refresh_milestone_task
+except ModuleNotFoundError:
+    from milestones import due_milestone_reminders, milestone_date_label, milestone_summary, refresh_milestone_task
+
 
 def application_root() -> Path:
     if getattr(sys, "frozen", False):
@@ -36,6 +41,7 @@ DEFAULT_SETTINGS_PATH = DATA_ROOT / "app_settings.json"
 DEFAULT_EXAMPLE_DATA_PATH = APP_ROOT / "daily_tasks.example.json"
 DEFAULT_EXAMPLE_SETTINGS_PATH = APP_ROOT / "app_settings.example.json"
 DLL_DIRECTORY_HANDLES: list[Any] = []
+SINGLE_INSTANCE_SERVER = "DeskTask.SingleInstance"
 
 
 def configure_qt_runtime_paths() -> None:
@@ -371,7 +377,7 @@ def parse_tasks(data: dict[str, Any]) -> list[Task]:
                 priority=item.get("priority", "medium"),
                 due_date=item.get("due_date"),
                 due_label=item.get("due_label") or item.get("due_date") or "",
-                note=item.get("note", ""),
+                note="\n\n".join(part for part in [milestone_summary(item), item.get("note", "")] if part),
                 depends_on=list(item.get("depends_on", [])),
                 completed_on=item.get("completed_on"),
             )
@@ -485,7 +491,7 @@ def classify_task(task: Task, today: date) -> tuple[str, int, str]:
         return (GROUP_LATER, 70, "5 月 26 日当天参加，提前 10 分钟进入 Zoom")
 
     if task.id == "ecce-paper-revise-resubmit":
-        return (GROUP_MUST, 1, "根据拒稿意见改成 APEC 版本")
+        return (GROUP_MUST, 1, "根据拒稿意见改成 PESA 版本")
 
     if task.id == "canada-visa-materials" and "暂缓" in task.due_label:
         return (GROUP_LATER, 85, "等待新的录用或签证触发条件")
@@ -500,6 +506,8 @@ def classify_task(task: Task, today: date) -> tuple[str, int, str]:
         return (GROUP_MUST, 3, "依赖家里人协助")
 
     if task.id == "submit-reimbursement":
+        if days is not None and days <= 0:
+            return (GROUP_MUST, 2, "今天提交报销")
         return (GROUP_NEXT, 45, "整理票据和附件")
 
     if days is not None:
@@ -566,6 +574,38 @@ def build_rows(tasks: list[Task], today: date | None = None) -> list[dict[str, A
     return sorted(rows, key=lambda row: row_sort_key(row, today))
 
 
+def task_summary_line(row: dict[str, Any], today: date | None = None) -> str:
+    today = today or date.today()
+    task: Task = row["task"]
+    parts = []
+    if task.due_label:
+        parts.append(task.due_label)
+    if is_completed_today(task, today):
+        parts.append("今天已完成")
+    elif row.get("reason"):
+        parts.append(str(row["reason"]))
+    suffix = f"（{'；'.join(parts)}）" if parts else ""
+    return f"- {task.title}{suffix}"
+
+
+def grouped_task_message(rows: list[dict[str, Any]], today: date | None = None, limit_per_group: int = 8) -> str:
+    today = today or date.today()
+    sections = []
+    for group in (GROUP_MUST, GROUP_NEXT, GROUP_LATER):
+        group_rows = [
+            row
+            for row in rows
+            if row["group"] == group and not is_completed_today(row["task"], today)
+        ]
+        if not group_rows:
+            continue
+        lines = [task_summary_line(row, today) for row in group_rows[:limit_per_group]]
+        if len(group_rows) > limit_per_group:
+            lines.append(f"- 还有 {len(group_rows) - limit_per_group} 项，请在完整任务表查看")
+        sections.append(group + "\n" + "\n".join(lines))
+    return "\n\n".join(sections)
+
+
 def check_data(path: Path) -> int:
     data = load_data(path)
     clear_stale_completions(data)
@@ -583,6 +623,7 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
     configure_qt_runtime_paths()
     from PySide6.QtCore import QPoint, QSize, Qt, QTimer
     from PySide6.QtGui import QAction, QColor, QFont, QFontDatabase, QIcon, QPainter, QPen, QPixmap
+    from PySide6.QtNetwork import QLocalServer, QLocalSocket
     from PySide6.QtWidgets import (
         QApplication,
         QCheckBox,
@@ -630,6 +671,7 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             self.is_rendering = False
             self.last_reminders: set[str] = set()
             self.tray_icon: QSystemTrayIcon | None = None
+            self.single_instance_server: QLocalServer | None = None
 
             self.setAttribute(Qt.WA_TranslucentBackground)
             self.setWindowTitle("DeskTask")
@@ -641,6 +683,10 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             self.clock = QTimer(self)
             self.clock.timeout.connect(self.on_clock)
             self.clock.start(30_000)
+            self.outlook_timer = QTimer(self)
+            self.outlook_timer.timeout.connect(self.import_outlook_tasks)
+            self.outlook_timer.start(2_000)
+            QTimer.singleShot(0, self.import_outlook_tasks)
             QTimer.singleShot(0, self.on_clock)
 
         @property
@@ -695,6 +741,17 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             painter.end()
             return QIcon(pixmap)
 
+        def minus_icon(self) -> QIcon:
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(Qt.transparent)
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            pen = QPen(QColor(self.theme["text"]), 6, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+            painter.setPen(pen)
+            painter.drawLine(18, 32, 46, 32)
+            painter.end()
+            return QIcon(pixmap)
+
         def build_tray(self) -> None:
             if not QSystemTrayIcon.isSystemTrayAvailable():
                 return
@@ -721,6 +778,22 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
         def on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
             if reason in {QSystemTrayIcon.Trigger, QSystemTrayIcon.DoubleClick}:
                 self.show_view("panel")
+
+        def show_existing_window(self) -> None:
+            self.showNormal()
+            self.raise_()
+            self.activateWindow()
+
+        def handle_single_instance_request(self) -> None:
+            if self.single_instance_server:
+                while self.single_instance_server.hasPendingConnections():
+                    socket = self.single_instance_server.nextPendingConnection()
+                    socket.disconnectFromServer()
+                    socket.deleteLater()
+            self.show_existing_window()
+
+        def hide_to_tray(self) -> None:
+            self.hide()
 
         def render(self) -> None:
             self.is_rendering = True
@@ -814,10 +887,39 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                 left.addWidget(subtitle_label)
             header.addLayout(left, 1)
 
+            actions = QHBoxLayout()
+            actions.setContentsMargins(0, 0, 0, 0)
+            actions.setSpacing(8)
+
+            hide_button = QPushButton()
+            hide_button.setFixedSize(36, 36)
+            hide_button.setObjectName("hideButton")
+            hide_button.setAccessibleName("Hide to tray")
+            hide_button.setToolTip("隐藏到托盘")
+            hide_button.setFocusPolicy(Qt.NoFocus)
+            hide_button.setIcon(self.minus_icon())
+            hide_button.setIconSize(QSize(18, 18))
+            hide_button.clicked.connect(self.hide_to_tray)
+            hide_button.setStyleSheet(
+                f"""
+                QPushButton#hideButton {{
+                    background: {self.theme['button']};
+                    color: {self.theme['text']};
+                    border: none;
+                    border-radius: 18px;
+                    padding: 0;
+                }}
+                QPushButton#hideButton:hover {{
+                    background: {self.theme['button_hover']};
+                }}
+                """
+            )
+
             more = QPushButton()
             more.setFixedSize(36, 36)
             more.setObjectName("moreButton")
             more.setAccessibleName("More actions")
+            more.setToolTip("更多操作")
             more.setFocusPolicy(Qt.NoFocus)
             more.setIcon(self.plus_icon())
             more.setIconSize(QSize(18, 18))
@@ -841,7 +943,9 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                 """
             )
             more.setMenu(self.more_menu())
-            header.addWidget(more, 0, Qt.AlignTop)
+            actions.addWidget(hide_button)
+            actions.addWidget(more)
+            header.addLayout(actions, 0)
             parent_layout.addLayout(header)
 
         def more_menu(self) -> QMenu:
@@ -878,11 +982,9 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             lock_action.triggered.connect(self.toggle_locked)
             theme_action = QAction("浅色模式" if self.settings.get("theme") == "dark" else "深色模式", self)
             theme_action.triggered.connect(self.toggle_theme)
-            hide_action = QAction("隐藏到托盘", self)
-            hide_action.triggered.connect(self.hide)
             quit_action = QAction("退出", self)
             quit_action.triggered.connect(QApplication.instance().quit)
-            for action in [refresh_action, add_action, import_action, font_action, view_action, lock_action, theme_action, hide_action]:
+            for action in [refresh_action, add_action, import_action, font_action, view_action, lock_action, theme_action]:
                 menu.addAction(action)
             menu.addSeparator()
             menu.addAction(quit_action)
@@ -1198,8 +1300,22 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             note_input = QTextEdit(item.get("note") or "")
             note_input.setMinimumHeight(120)
 
+            milestone_checks = []
+            for step in item.get("milestones", []):
+                checkbox = QCheckBox(f"{step['title']}  {milestone_date_label(step)}")
+                checkbox.setChecked(step.get("status") == "done")
+                checkbox.setToolTip(step.get("evidence", ""))
+                milestone_checks.append((step, checkbox))
+            if milestone_checks:
+                due_date_input.setReadOnly(True)
+                due_label_input.setReadOnly(True)
+                reminder_at_input.setReadOnly(True)
+
             completed_today = QCheckBox("今天已完成")
             completed_today.setChecked(item.get("completed_on") == date.today().isoformat())
+            if milestone_checks:
+                status_input.setEnabled(False)
+                completed_today.setEnabled(False)
 
             form.addRow("任务名", title_input)
             form.addRow("状态", status_input)
@@ -1208,6 +1324,8 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             form.addRow("显示说明", due_label_input)
             form.addRow("提醒时间", reminder_at_input)
             form.addRow("循环规则", recurrence_input)
+            for index, (_step, checkbox) in enumerate(milestone_checks):
+                form.addRow("子事项" if index == 0 else "", checkbox)
             form.addRow("描述", note_input)
             form.addRow("", completed_today)
             layout.addLayout(form)
@@ -1222,6 +1340,7 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             layout.addWidget(buttons)
 
             def save_task_detail() -> None:
+                nonlocal item
                 title = title_input.text().strip()
                 if not title:
                     QMessageBox.warning(dialog, "缺少任务名", "任务名不能为空。")
@@ -1238,6 +1357,15 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                 if reminder_at and parse_reminder_datetime(reminder_at) is None:
                     QMessageBox.warning(dialog, "提醒时间格式错误", "提醒时间请使用 YYYY-MM-DD HH:MM，或留空。")
                     return
+
+                # Timer refreshes may replace self.data while this modal is open.
+                latest_data = load_data(self.data_path)
+                latest_item = next((task for task in latest_data.get("tasks", []) if task.get("id") == task_id), None)
+                if latest_item is None:
+                    QMessageBox.warning(dialog, "任务不存在", "这个任务已被删除，请关闭详情。")
+                    return
+                self.data = latest_data
+                item = latest_item
 
                 item["title"] = title
                 item["status"] = status_input.currentData()
@@ -1258,6 +1386,13 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                     item["completed_on"] = date.today().isoformat()
                 else:
                     item.pop("completed_on", None)
+
+                if milestone_checks:
+                    current_steps = {step["id"]: step for step in item.get("milestones", [])}
+                    for step, checkbox in milestone_checks:
+                        if step["id"] in current_steps:
+                            current_steps[step["id"]]["status"] = "done" if checkbox.isChecked() else "todo"
+                    refresh_milestone_task(item)
 
                 save_data(self.data, self.data_path)
                 self.render()
@@ -1505,6 +1640,10 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                 save_data(self.data, self.data_path)
             for item in self.data.get("tasks", []):
                 if item.get("id") == task_id:
+                    if item.get("milestones"):
+                        for step in item["milestones"]:
+                            step["status"] = "done" if checked else "todo"
+                        refresh_milestone_task(item)
                     if checked:
                         item["completed_on"] = today
                     else:
@@ -1553,9 +1692,7 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
         def show_view(self, view: str) -> None:
             self.settings["view"] = view
             save_settings(self.settings, self.settings_path)
-            self.show()
-            self.raise_()
-            self.activateWindow()
+            self.show_existing_window()
             self.render()
 
         def toggle_locked(self) -> None:
@@ -1572,6 +1709,16 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             current_minute = now.replace(second=0, microsecond=0)
             for item in self.data.get("tasks", []):
                 if task_type(item.get("priority")) != "reminder":
+                    continue
+                if item.get("milestones"):
+                    for step in due_milestone_reminders(item, now):
+                        step["last_reminded_at"] = now.strftime("%Y-%m-%d %H:%M")
+                        save_data(self.data, self.data_path)
+                        title = f"{item['title']} · {step['title']}"
+                        message = milestone_date_label(step)
+                        if self.tray_icon:
+                            self.tray_icon.showMessage(title, message, QSystemTrayIcon.Information, 8000)
+                        QMessageBox.information(self, title, message)
                     continue
                 if item.get("completed_on") == now.date().isoformat():
                     continue
@@ -1604,6 +1751,20 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             if changed:
                 save_data(self.data, self.data_path)
             return changed
+
+        def import_outlook_tasks(self) -> None:
+            try:
+                from daily_task.outlook_import import consume_imports
+            except ModuleNotFoundError:
+                from outlook_import import consume_imports
+            try:
+                data = load_data(self.data_path)
+                if consume_imports(data, self.data_path, save_data):
+                    self.data = data
+                    self.render()
+            except (OSError, ValueError):
+                # Keep queued requests intact for the next poll if storage is busy.
+                return
 
         def on_clock(self) -> None:
             now = datetime.now()
@@ -1639,27 +1800,69 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                 self.show_evening_reminder()
 
         def show_morning_reminder(self) -> None:
-            rows = build_rows(parse_tasks(self.data))
-            must = [row["task"].title for row in rows if row["group"] == GROUP_MUST and not is_completed_today(row["task"])]
-            message = "今天必须做：\n" + "\n".join(f"- {title}" for title in must[:6])
-            if not must:
-                message = "今天没有必须处理项。请选择 2-3 项可以推进的任务。"
+            today = date.today()
+            rows = build_rows(parse_tasks(self.data), today)
+            message = grouped_task_message(rows, today)
+            if not message:
+                message = "今天没有未完成任务。"
             QMessageBox.information(self, "早上 9:00 任务提醒", message)
 
         def show_evening_reminder(self) -> None:
+            today = date.today()
+            rows = build_rows(parse_tasks(self.data), today)
+            completed_rows = [row for row in rows if is_completed_today(row["task"], today)]
+            open_rows = [row for row in rows if not is_completed_today(row["task"], today)]
+
+            sections = []
+            if completed_rows:
+                sections.append("已完成\n" + "\n".join(task_summary_line(row, today) for row in completed_rows[:8]))
+            if open_rows:
+                open_lines = [task_summary_line(row, today) for row in open_rows[:10]]
+                if len(open_rows) > 10:
+                    open_lines.append(f"- 还有 {len(open_rows) - 10} 项，请在完整任务表查看")
+                sections.append("未完成\n" + "\n".join(open_lines))
+                tomorrow_lines = [task_summary_line(row, today) for row in open_rows[:5]]
+                sections.append("明天优先事项\n" + "\n".join(tomorrow_lines))
+            if not sections:
+                sections.append("已完成\n- 今天没有剩余未完成任务")
+
             QMessageBox.information(
                 self,
                 "晚上 18:00 任务复盘",
-                "请复盘今天完成了哪些、哪些没完成。\n已完成的普通任务会在清理点删除；循环任务会保留并在第二天重新变成未完成。",
+                "\n\n".join(sections),
             )
 
         def closeEvent(self, event: Any) -> None:
             self.hide()
             event.ignore()
 
+    def notify_existing_instance() -> bool:
+        socket = QLocalSocket()
+        socket.connectToServer(SINGLE_INSTANCE_SERVER)
+        if not socket.waitForConnected(250):
+            return False
+        socket.write(b"show\n")
+        socket.flush()
+        socket.waitForBytesWritten(250)
+        socket.disconnectFromServer()
+        return True
+
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    if notify_existing_instance():
+        return 0
     window = DesktopTaskWindow()
+    server = QLocalServer(window)
+    if not server.listen(SINGLE_INSTANCE_SERVER):
+        QLocalServer.removeServer(SINGLE_INSTANCE_SERVER)
+        if not server.listen(SINGLE_INSTANCE_SERVER):
+            QMessageBox.warning(window, "DeskTask", "无法启用单实例检测，但程序会继续运行。")
+        else:
+            window.single_instance_server = server
+            server.newConnection.connect(window.handle_single_instance_request)
+    else:
+        window.single_instance_server = server
+        server.newConnection.connect(window.handle_single_instance_request)
     window.show()
     return app.exec()
 

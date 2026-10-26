@@ -1,3 +1,31 @@
+# DeskTask v0.2.0-beta
+
+Outlook web import and multiple dated milestones in one schedule.
+
+- Added an unpacked Chrome extension and a current-user native-messaging bridge for source installations.
+- Supports the Outlook `cloud.microsoft` host and skips empty forwarded messages when extracting email content.
+- Locally identifies registration, slide submission, training, and event milestones for review before importing.
+- Stores milestones in one schedule, with separate completion and reminder state. Reimporting preserves progress.
+- Prevents timer refreshes from losing edits in task details.
+- Includes the previously unpublished single-instance launch, hide button, and grouped morning/evening reminder improvements.
+- Keeps personal task data, import queues, and generated bridge settings out of Git. Windows builds preserve the bridge settings directory.
+- Adds Python, extraction, background-routing, and optional desktop/mobile browser tests.
+
+The Outlook bridge still requires the source checkout and `.venv`; it is not bundled into the Windows installer. No mailbox OAuth permission is requested. Dates are extracted with local rules and must be reviewed.
+
+## 中文说明
+
+- 新增 Outlook 网页 Chrome 扩展与本地接收程序，支持 `outlook.cloud.microsoft`。
+- 同一封邮件可以识别为一条日程下的报名、交 PPT、培训、比赛等子事项，确认后一次导入。
+- 子事项可分别勾选和提醒，主日程显示最早未完成项；重复导入保留完成进度。
+- 修复详情窗口编辑期间因定时刷新而丢失修改的问题。
+- 同步此前未发布的单实例运行、隐藏按钮和早晚提醒分组改进。
+- 邮件导入队列和本地连接配置不会进入 Git；构建 Windows 程序时保留连接配置。
+
+Outlook 连接目前适用于源码运行方式，不随 Windows 安装器自动安装。日期使用本地规则提取，须在导入前核对。
+
+---
+
 # DeskTask v0.1.3-beta
 
 Schedule migration and local development launch improvements.

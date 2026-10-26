@@ -1,6 +1,6 @@
 param(
-  [string]$Version = "0.1.3-beta",
-  [string]$VersionInfo = "0.1.3.0",
+  [string]$Version = "0.2.0-beta",
+  [string]$VersionInfo = "0.2.0.0",
   [switch]$SkipAppBuild
 )
 

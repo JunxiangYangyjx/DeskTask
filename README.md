@@ -21,6 +21,9 @@ DeskTask is a small Windows desktop task panel built with PySide6 / Qt. It stays
 - Completed recurring tasks stay in the list and become incomplete again
 - Font replacement from the `+` menu
 - Data is stored locally
+- Chrome extension for importing the currently open Outlook web email
+- One schedule with multiple dated checklist items and independent reminders
+- Single-instance launch and a dedicated hide-to-tray button
 
 ## Screenshots
 
@@ -68,6 +71,35 @@ Create a desktop shortcut that opens the local development version:
 
 The shortcut runs `src\daily_task\app.py` with the project's virtual environment and uses the local project JSON data.
 
+## Outlook Web Import
+
+The Outlook bridge currently requires the source checkout and its `.venv`; the Windows installer alone does not install the bridge.
+
+1. Follow **Install From Source** above.
+2. Run `powershell -ExecutionPolicy Bypass -File scripts\install_outlook_bridge.ps1` from the project folder.
+3. In Chrome, open `chrome://extensions`, enable Developer mode, and load the unpacked `extensions/outlook` folder.
+4. Refresh Outlook, open an email, and click **加入 DeskTask** to review and import it.
+
+Supported hosts include `outlook.office.com`, `outlook.office365.com`, `outlook.live.com`, and `outlook.cloud.microsoft`. The extension uses a local native-messaging bridge, not Microsoft Graph or an external AI service. Browser policies may restrict local extensions or native messaging.
+
+An email can become one schedule containing registration, slide submission, training, and event milestones. Review the extracted dates and times before importing; missing times stay blank. Each milestone can be completed separately in task details. Milestone reminder popups do not mark the schedule complete. Existing single reminder tasks retain their automatic-completion behavior.
+
+See [extension setup and limitations](extensions/outlook/README.md). After upgrading, reload the extension and restart DeskTask.
+
+## Tests
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p test_outlook_import.py -v
+node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs
+```
+
+Optional browser UI checks require Node.js, Chrome, and Playwright:
+
+```powershell
+npm install --prefix build/outlook-qa --no-package-lock playwright
+node --test tests\outlook_ui.test.cjs
+```
+
 ## Validate Data
 
 ```powershell
@@ -85,6 +117,8 @@ These files are intentionally ignored by Git. The repository includes safe examp
 
 - `daily_tasks.example.json`
 - `app_settings.example.json`
+
+The `outlook_inbox/` queue and generated bridge configuration under `build/` also remain local and are ignored by Git.
 
 If `daily_tasks.json` is missing, DeskTask creates it from the example file.
 
