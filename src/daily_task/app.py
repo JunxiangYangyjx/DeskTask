@@ -1082,6 +1082,15 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
                 content_layout.addWidget(self.task_card(row))
             content_layout.addStretch(1)
             scroll.setWidget(content)
+
+            def repaint_scrolled_content(_value: int) -> None:
+                # Partial scroll blits can leave seams under the translucent panel's shadow.
+                scroll.viewport().update()
+                content.update()
+                shell.update()
+
+            scroll.verticalScrollBar().valueChanged.connect(repaint_scrolled_content)
+            scroll.horizontalScrollBar().valueChanged.connect(repaint_scrolled_content)
             shell_layout.addWidget(scroll, 1)
 
             grip_row = QHBoxLayout()

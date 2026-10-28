@@ -39,7 +39,7 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_outlook_import.py -v
+          .\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs tests\mail_providers.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
