@@ -41,7 +41,7 @@ jobs:
         run: |
           .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_outlook_import.py -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs
+          node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs tests\mail_providers.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Validate examples

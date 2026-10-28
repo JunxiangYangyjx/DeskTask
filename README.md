@@ -21,7 +21,7 @@ DeskTask is a small Windows desktop task panel built with PySide6 / Qt. It stays
 - Completed recurring tasks stay in the list and become incomplete again
 - Font replacement from the `+` menu
 - Data is stored locally
-- Chrome extension for importing the currently open Outlook web email
+- Chrome extension with Outlook, Gmail, QQ and NetEase webmail adapters
 - One schedule with multiple dated checklist items and independent reminders
 - Single-instance launch and a dedicated hide-to-tray button
 
@@ -71,16 +71,20 @@ Create a desktop shortcut that opens the local development version:
 
 The shortcut runs `src\daily_task\app.py` with the project's virtual environment and uses the local project JSON data.
 
-## Outlook Web Import
+## Webmail Import
 
-The Outlook bridge currently requires the source checkout and its `.venv`; the Windows installer alone does not install the bridge.
+The mail bridge currently requires the source checkout and its `.venv`; the Windows installer alone does not install the bridge.
 
 1. Follow **Install From Source** above.
 2. Run `powershell -ExecutionPolicy Bypass -File scripts\install_outlook_bridge.ps1` from the project folder.
 3. In Chrome, open `chrome://extensions`, enable Developer mode, and load the unpacked `extensions/outlook` folder.
-4. Refresh Outlook, open an email, and click **加入 DeskTask** to review and import it.
+4. Refresh webmail, open an email, and click **加入 DeskTask** to review and import it.
 
 Supported hosts include `outlook.office.com`, `outlook.office365.com`, `outlook.live.com`, and `outlook.cloud.microsoft`. The extension uses a local native-messaging bridge, not Microsoft Graph or an external AI service. Browser policies may restrict local extensions or native messaging.
+
+Extension 0.3.0 adds Gmail (`mail.google.com`), QQ (`mail.qq.com` / `wx.mail.qq.com`), and NetEase 163/126/yeah adapters. The user confirmed Gmail and the current QQ webmail version work on 2026-10-28; NetEase and legacy QQ layouts still need live verification. Same-origin message frames are supported; inaccessible cross-origin frames can use manual paste. Known session parameters such as `sid` and `token` are removed from saved source links, which may then open the mailbox rather than a specific message. Existing extension IDs, installation paths and native host configuration remain compatible.
+
+Chinese month/day and English month-name dates without a year default to the computer's local current year, with a preview notice. Explicit years are preserved, and past dates show a warning rather than rolling forward to next year. Combined `Date & Time` lines are supported, including a date before the clock.
 
 An email can become one schedule containing registration, slide submission, training, and event milestones. Review the extracted dates and times before importing; missing times stay blank. Each milestone can be completed separately in task details. Milestone reminder popups do not mark the schedule complete. Existing single reminder tasks retain their automatic-completion behavior.
 
@@ -90,14 +94,14 @@ See [extension setup and limitations](extensions/outlook/README.md). After upgra
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_outlook_import.py -v
-node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs
+node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs tests\mail_providers.test.cjs
 ```
 
 Optional browser UI checks require Node.js, Chrome, and Playwright:
 
 ```powershell
 npm install --prefix build/outlook-qa --no-package-lock playwright
-node --test tests\outlook_ui.test.cjs
+node --test tests\outlook_ui.test.cjs tests\mail_providers_ui.test.cjs
 ```
 
 ## Validate Data

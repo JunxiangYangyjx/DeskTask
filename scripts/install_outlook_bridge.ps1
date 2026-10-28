@@ -15,7 +15,7 @@ $config = @{ data_path = $DataPath } | ConvertTo-Json
 [IO.File]::WriteAllText((Join-Path $bridgeRoot 'config.json'), $config, [Text.UTF8Encoding]::new($false))
 $manifest = @{
     name = 'com.desktask.outlook'
-    description = 'DeskTask Outlook import'
+    description = 'DeskTask webmail import'
     path = $launcherPath
     type = 'stdio'
     allowed_origins = @('chrome-extension://nmknpdikgjjjdmpcnlnehgbnbhdojkjj/')

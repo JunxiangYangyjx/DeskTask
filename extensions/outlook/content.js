@@ -34,7 +34,8 @@
   document.documentElement.append(host);
   trigger.addEventListener("click", () => {
     let mail;
-    try { mail = DeskTaskOutlook.readMail(); } catch (error) { alert(error.message); return; }
+    try { mail = DeskTaskMail.readMail(); } catch (error) { alert(error.message); return; }
+    const pageUrl = location.href;
     const overlay = document.createElement("div");
     overlay.className = "overlay";
     const form = document.createElement("form");
@@ -58,8 +59,13 @@
     field("body").value = mail.body;
     field("location").value = mail.location;
     field("date").value = mail.dates.length === 1 ? mail.dates[0] : "";
-    field("time").value = mail.dates.length === 1 ? mail.time : "";
-    const defaultHint = mail.extractionWarning || (mail.dates.length > 1 ? `邮件含多个日期，请选择：${mail.dates.join("、")}` : mail.dates.length === 1 ? "请核对活动日期和时区。" : "未找到含年份的明确日期，可手动填写。");
+    field("time").value = mail.dates.length <= 1 ? mail.time : "";
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const pastDates = mail.dates.filter(value=>value < today);
+    const pastHint = pastDates.length ? `邮件日期 ${pastDates.join('、')} 已过去，请核对是否仍要导入。` : '';
+    const yearHint = mail.assumedYear ? `邮件中未写年份的日期已按今年（${mail.assumedYear} 年）补全。` : '';
+    const defaultHint = mail.extractionWarning || pastHint || (mail.dates.length > 1 ? `邮件含多个日期，请选择：${mail.dates.join("、")}` : mail.dates.length === 1 ? "请核对活动日期和时区。" : "未找到含年份的明确日期，可手动填写。");
     let nextStep = 0;
     const addStep = (step = {}) => {
       const index = ++nextStep;
@@ -102,7 +108,7 @@
       for (const row of form.querySelectorAll(".step")) {
         for (const input of row.querySelectorAll("input:not(.include)")) input.disabled = !grouped || !row.querySelector(".include").checked;
       }
-      form.querySelector(".hint").textContent = grouped ? "请核对子事项及各自日期、时间。" : defaultHint;
+      form.querySelector(".hint").textContent = [yearHint, grouped ? (pastHint || "请核对子事项及各自日期、时间。") : defaultHint].filter(Boolean).join(' ');
     };
     field("grouped").onchange = () => {
       if (field("grouped").checked && !form.querySelector(".step")) addStep();
@@ -110,7 +116,7 @@
     };
     form.querySelector("#add-step").onclick = () => { addStep(); updateMode(); };
     form.querySelector("#rescan").onclick = () => {
-      const steps = DeskTaskOutlook.milestones(field("body").value);
+      const steps = DeskTaskMail.milestones(field("body").value);
       form.querySelector(".steps").replaceChildren();
       nextStep = 0;
       for (const step of steps) addStep(step);
@@ -143,7 +149,7 @@
       if (grouped && !steps.length) { status.textContent = "请至少纳入一个子事项。"; return; }
       if (grouped && steps.some(step => (step.time || step.end_time) && !step.due_date)) { status.textContent = "有时间的子事项需要同时填写日期。"; return; }
       if (grouped && steps.some(step => step.end_time && (!step.time || step.end_time <= step.time))) { status.textContent = "结束时间需晚于当天开始时间。"; return; }
-      if (location.href !== mail.url) { status.textContent = "当前邮件已改变，请取消后重新导入。"; return; }
+      if (location.href !== pageUrl) { status.textContent = "当前邮件已改变，请取消后重新导入。"; return; }
       const submit = form.querySelector('[type="submit"]');
       submit.disabled = true;
       try {

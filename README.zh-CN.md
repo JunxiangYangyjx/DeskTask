@@ -21,7 +21,7 @@ DeskTask 是一个基于 PySide6 / Qt 构建的 Windows 桌面任务面板。它
 - 循环任务完成后会保留，并在下次清理后重新变为未完成
 - 支持从 `+` 菜单更换字体
 - 任务数据保存在本地
-- Chrome 扩展，可将当前 Outlook 网页邮件导入待办
+- Chrome 扩展，可将当前网页邮件导入待办（Outlook、Gmail、QQ、网易适配）
 - 同一条日程支持多个带日期的子事项，分别完成和提醒
 - 单实例运行，并提供独立的隐藏到托盘按钮
 
@@ -71,16 +71,18 @@ python -m venv .venv
 
 这个快捷方式会使用项目虚拟环境运行 `src\daily_task\app.py`，并读取本地项目里的 JSON 数据。
 
-## 从 Outlook 网页导入
+## 从邮箱网页导入
 
-目前 Outlook 连接需要保留源码目录和 `.venv`，Windows 安装器本身不会安装此连接。
+目前邮件连接需要保留源码目录和 `.venv`，Windows 安装器本身不会安装此连接。
 
 1. 先按上文“从源码运行”配置环境。
 2. 在项目目录执行 `powershell -ExecutionPolicy Bypass -File scripts\install_outlook_bridge.ps1`。
 3. Chrome 打开 `chrome://extensions`，启用开发者模式，加载已解压的 `extensions/outlook` 文件夹。
-4. 刷新 Outlook，打开邮件，点击“加入 DeskTask”，核对后导入。
+4. 刷新邮箱网页，打开邮件，点击“加入 DeskTask”，核对后导入。
 
-支持 `outlook.office.com`、`outlook.office365.com`、`outlook.live.com` 和 `outlook.cloud.microsoft`。邮件通过 Chrome 本地通信交给桌面程序，不使用 Microsoft Graph，也不上传至外部 AI 服务。受管理的浏览器可能限制本地扩展或本地通信。
+扩展 0.3.0 增加 Gmail（`mail.google.com`）、QQ（`mail.qq.com` / `wx.mail.qq.com`）及网易 163/126/yeah 的网页适配，并保留原有 Outlook 主机支持。Gmail 和 QQ 新版已由用户于 2026-10-28 确认实际使用正常；网易及 QQ 旧版仍待真实邮箱验证。邮件通过 Chrome 本地通信交给桌面程序，不使用邮件 API，也不上传至外部 AI 服务。受管理的浏览器可能限制本地扩展或本地通信。
+
+中文月日及英文月份日期未写年份时，默认按电脑本地当前年份补全，并在预览中提示。明确年份保持原样；日期已过会提示核对，不会自动改成明年。支持从 `Date & Time` 等日期时间同行的格式中提取时间。
 
 同一封邮件可以保存为一条日程，包含报名、交 PPT、培训、比赛等子事项。日期识别采用本地规则，导入前需要核对；未明确给出的时间保持空白。在任务详情中可以逐项勾选完成。子事项弹出提醒时不会自动完成整条日程；原有单次提醒仍保留弹窗后自动完成的行为。
 
@@ -90,14 +92,14 @@ python -m venv .venv
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -p test_outlook_import.py -v
-node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs
+node --test tests\outlook_extract.test.cjs tests\outlook_background.test.cjs tests\mail_providers.test.cjs
 ```
 
 可选的浏览器界面测试需要 Node.js、Chrome 和 Playwright：
 
 ```powershell
 npm install --prefix build/outlook-qa --no-package-lock playwright
-node --test tests\outlook_ui.test.cjs
+node --test tests\outlook_ui.test.cjs tests\mail_providers_ui.test.cjs
 ```
 
 ## 校验数据

@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Outlook 加入 DeskTask",
-  "version": "0.2.0",
-  "description": "将当前 Outlook 网页邮件确认为本地 DeskTask 待办。",
+  "name": "邮件加入 DeskTask",
+  "version": "0.3.0",
+  "description": "将 Outlook、Gmail、QQ 和网易网页版邮件确认为本地日程。",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1gAIdioKPsGrMaG8JM3U4+wqzeSxRSmUwxy++liLmZUk8kVetkrBa4kzkPdvAp/zzeL6l7X6EEE1Fdx4n3pdhRuFL1P50EcjvrkIfC//tnHw8IvOVmHeg7+wo3pMcyPZoT+SF/FQj6YyIODrk4YDShHOpyVaIG53g6y0ZpHRz7dBheZm1ftp0v9p7Fu05l+zjOtbKlbZkcIJcNKKRphPRvPKLeX0AGOnCjigIZZiuPZiwr0C6j0a1jqBuYtbQxGvxhTZ3inxQtM/FZdEZaTugBkKr7FeYWIbRjUl/mqC83j03UjzvxQ4mVtX61NmZwYZJRKQCosd4OMO0SVmNeD9CQIDAQAB",
   "permissions": ["nativeMessaging"],
   "background": {"service_worker": "background.js"},
   "content_scripts": [{
-    "matches": ["https://outlook.office.com/*", "https://outlook.office365.com/*", "https://outlook.live.com/*", "https://outlook.cloud.microsoft/*"],
-    "js": ["extract.js", "content.js"],
+    "matches": ["https://outlook.office.com/*", "https://outlook.office365.com/*", "https://outlook.live.com/*", "https://outlook.cloud.microsoft/*", "https://mail.google.com/*", "https://mail.qq.com/*", "https://wx.mail.qq.com/*", "https://*.mail.163.com/*", "https://*.mail.126.com/*", "https://*.mail.yeah.net/*", "https://email.163.com/*"],
+    "js": ["providers.js", "extract.js", "content.js"],
     "run_at": "document_idle"
   }]
 }

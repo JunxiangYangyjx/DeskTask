@@ -50,6 +50,26 @@ class OutlookImportTests(unittest.TestCase):
         self.assertIsNone(task["due_date"])
         self.assertIsNone(task["reminder_at"])
 
+    def test_other_providers_round_trip_without_session_credentials(self):
+        for url, expected in [
+            ("https://mail.google.com/mail/u/0/#inbox/message123", "gmail-web"),
+            ("https://mail.qq.com/cgi-bin/readmail?sid=PRIVATE&mailid=123", "qq-web"),
+            ("https://wx.mail.qq.com/#/read/123?token=PRIVATE", "qq-web"),
+            ("https://mail.163.com/js6/main.jsp?sid=PRIVATE#/read?mid=123", "netease-web"),
+            ("https://hw.mail.126.com/js6/main.jsp?sid=PRIVATE#/read?mid=123", "netease-web"),
+        ]:
+            with self.subTest(url=url):
+                payload = {**self.payload, "url": url}
+                identity = enqueue_import(payload, self.path)
+                self.assertTrue(identity.startswith("mail-"))
+                self.assertEqual(consume_imports(self.data, self.path, save), 1)
+                task = self.data["tasks"][-1]
+                self.assertEqual(task["source"]["type"], expected)
+                self.assertNotIn("PRIVATE", task["source"]["url"])
+                self.assertNotIn("PRIVATE", task["note"])
+                enqueue_import(payload, self.path)
+                self.assertEqual(consume_imports(self.data, self.path, save), 0)
+
     def test_cloud_domain_is_imported_and_lookalikes_are_rejected(self):
         payload = {**self.payload, "url": "https://outlook.cloud.microsoft/mail/inbox/id/example"}
         enqueue_import(payload, self.path)

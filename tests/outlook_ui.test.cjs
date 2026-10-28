@@ -22,6 +22,7 @@ test('Outlook preview, confirmed payload, and desktop/mobile layout', async () =
         Element.prototype.attachShadow = function(options) { return attach.call(this,{...options,mode:'open'}); };
         window.chrome = {runtime:{sendMessage: async message => { window.sentImport=message; return {ok:true,queued:true}; }}};
       });
+      await page.addScriptTag({path:path.join(root,'extensions/outlook/providers.js')});
       await page.addScriptTag({path:path.join(root,'extensions/outlook/extract.js')});
       await page.addScriptTag({path:path.join(root,'extensions/outlook/content.js')});
       await page.getByRole('button',{name:'加入 DeskTask',exact:true}).click();
@@ -56,6 +57,7 @@ test('Outlook preview, confirmed payload, and desktop/mobile layout', async () =
         Element.prototype.attachShadow = function(options) { return attach.call(this,{...options,mode:'open'}); };
         window.chrome = {runtime:{sendMessage:async()=>({ok:true})}};
       });
+      await page.addScriptTag({path:path.join(root,'extensions/outlook/providers.js')});
       await page.addScriptTag({path:path.join(root,'extensions/outlook/extract.js')});
       await page.addScriptTag({path:path.join(root,'extensions/outlook/content.js')});
       await page.getByRole('button',{name:'加入 DeskTask',exact:true}).click();
@@ -86,6 +88,7 @@ test('Edit and import four milestones as one schedule, including mobile layout',
         Element.prototype.attachShadow=function(options){return attach.call(this,{...options,mode:'open'});};
         window.chrome={runtime:{sendMessage:async message=>{window.sentImport=message;return {ok:true};}}};
       });
+      await page.addScriptTag({path:path.join(root,'extensions/outlook/providers.js')});
       await page.addScriptTag({path:path.join(root,'extensions/outlook/extract.js')});
       await page.addScriptTag({path:path.join(root,'extensions/outlook/content.js')});
       await page.getByRole('button',{name:'加入 DeskTask',exact:true}).click();
