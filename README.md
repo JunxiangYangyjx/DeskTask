@@ -21,6 +21,7 @@ DeskTask is a small Windows desktop task panel built with PySide6 / Qt. It stays
 - Completed recurring tasks stay in the list and become incomplete again
 - Font replacement from the `+` menu
 - Data is stored locally
+- Optional per-user Windows startup, controlled from the More actions menu (off by default)
 - Chrome extension with Outlook, Gmail, QQ and NetEase webmail adapters
 - One schedule with multiple dated checklist items and independent reminders
 - Single-instance launch and a dedicated hide-to-tray button

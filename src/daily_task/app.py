@@ -13,8 +13,10 @@ from typing import Any
 
 try:
     from daily_task.milestones import due_milestone_reminders, milestone_date_label, milestone_summary, refresh_milestone_task
+    from daily_task import startup
 except ModuleNotFoundError:
     from milestones import due_milestone_reminders, milestone_date_label, milestone_summary, refresh_milestone_task
+    import startup
 
 
 def application_root() -> Path:
@@ -982,13 +984,27 @@ def run_gui(data_path: Path, settings_path: Path = DEFAULT_SETTINGS_PATH) -> int
             lock_action.triggered.connect(self.toggle_locked)
             theme_action = QAction("浅色模式" if self.settings.get("theme") == "dark" else "深色模式", self)
             theme_action.triggered.connect(self.toggle_theme)
+            startup_action = QAction("开机自启动", self)
+            startup_action.setCheckable(True)
+            try:
+                startup_action.setChecked(startup.is_enabled())
+            except OSError as error:
+                startup_action.setEnabled(False)
+                startup_action.setToolTip(f"无法读取自启动设置：{error}")
+            startup_action.triggered.connect(self.toggle_startup)
             quit_action = QAction("退出", self)
             quit_action.triggered.connect(QApplication.instance().quit)
-            for action in [refresh_action, add_action, import_action, font_action, view_action, lock_action, theme_action]:
+            for action in [refresh_action, add_action, import_action, font_action, view_action, lock_action, theme_action, startup_action]:
                 menu.addAction(action)
             menu.addSeparator()
             menu.addAction(quit_action)
             return menu
+
+        def toggle_startup(self, enabled: bool) -> None:
+            try:
+                startup.set_enabled(enabled, self.data_path, self.settings_path)
+            except OSError as error:
+                QMessageBox.warning(self, "设置失败", f"无法修改开机自启动：\n{error}")
 
         def rows_for_panel(self) -> list[dict[str, Any]]:
             rows = build_rows(parse_tasks(self.data))
